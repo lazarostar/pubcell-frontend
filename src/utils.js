@@ -1,5 +1,5 @@
-export function client(endpoint) {
+export function client(endpoint, _ = false) {
   return window
-    .fetch(`http://localhost:5000/${endpoint}`)
+    .fetch(`http://localhost${_ ? "" : ":5000"}/${endpoint}`)
     .then((response) => response.json());
 }
