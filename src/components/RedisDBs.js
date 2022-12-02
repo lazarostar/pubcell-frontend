@@ -9,24 +9,64 @@ import {
   TableBody,
   Typography,
   CircularProgress,
+  Stack,
+  Button,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  TextField,
+  DialogActions,
 } from "@mui/material";
 
-import { useQuery } from "react-query";
+import { useQuery, useMutation, useQueryClient } from "react-query";
 import { client } from "../utils";
 
 export default function RedisDBs({ projectName }) {
+  const [open, setOpen] = React.useState(false);
+
+  const [newKey, setNewKey] = React.useState("");
+  const [newValue, setNewValue] = React.useState("");
+
+  const queryClient = useQueryClient();
+
   const {
     isLoading,
     isError,
     data: pairs,
     error,
   } = useQuery(`${projectName}/redisdb`, () =>
-    client(`${projectName}/redisdb`, {_: true})
+    client(`${projectName}/redisdb`, { _: true })
   );
+
+  const { isLoading: isMutationLoading, mutate: addKeyValue } = useMutation(
+    ({ newKey, newValue }) =>
+      client(`${projectName}/redisdb`, {
+        data: {
+          key: newKey,
+          value: newValue,
+        },
+        _: true,
+      }),
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries(`${projectName}/redisdb`);
+      },
+    }
+  );
+
+  const handleClose = () => {
+    setOpen(false);
+  };
 
   return (
     <Box>
-      <Typography variant="h3">RedisDB</Typography>
+      <Stack direction="row" justifyContent="space-between">
+        <Typography variant="h3">RedisDB</Typography>
+        <Button variant="contained" onClick={() => setOpen(true)}>
+          New Key/Value
+        </Button>
+      </Stack>
       <TableContainer>
         <Table sx={{ minWidth: 650 }} aria-label="simple table">
           <TableHead>
@@ -67,6 +107,45 @@ export default function RedisDBs({ projectName }) {
           </TableBody>
         </Table>
       </TableContainer>
+      <Dialog open={open} onClose={handleClose}>
+        <DialogTitle>Add New Project</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            To add new project, please enter your project name here.
+          </DialogContentText>
+          <TextField
+            autoFocus
+            margin="dense"
+            label="Key"
+            type="text"
+            fullWidth
+            variant="standard"
+            onChange={(e) => setNewKey(e.target.value)}
+            value={newKey}
+          />
+          <TextField
+            autoFocus
+            margin="dense"
+            label="Value"
+            type="text"
+            fullWidth
+            variant="standard"
+            onChange={(e) => setNewValue(e.target.value)}
+            value={newValue}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleClose}>Cancel</Button>
+          <Button
+            onClick={() => {
+              addKeyValue({ newKey, newValue });
+              setOpen(false);
+            }}
+          >
+            OK
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }
