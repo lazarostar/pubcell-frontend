@@ -10,9 +10,16 @@ import {
   Typography,
   CircularProgress,
   Stack,
+  Button,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  TextField,
+  DialogActions,
 } from "@mui/material";
 
-import { useQuery } from "react-query";
+import { useQuery, useMutation, useQueryClient } from "react-query";
 import { client } from "../utils";
 
 function MongoCollections({ projectName, dbName, onRowClick }) {
@@ -78,9 +85,9 @@ function MongoDocuments({ projectName, dbName, collectionName }) {
     error,
   } = useQuery(`${projectName}/mongodb/${dbName}/${collectionName}`, () =>
     dbName && collectionName
-      ? client(`${projectName}/mongodb/${dbName}/${collectionName}`, {_: true}).then(
-          (response) => response.result
-        )
+      ? client(`${projectName}/mongodb/${dbName}/${collectionName}`, {
+          _: true,
+        }).then((response) => response.result)
       : []
   );
 
@@ -125,8 +132,24 @@ function MongoDocuments({ projectName, dbName, collectionName }) {
 }
 
 export default function MongoDBs({ projectName }) {
+  const queryClient = useQueryClient();
+
   const [dbName, setDbName] = React.useState("");
   const [collectionName, setCollectionName] = React.useState("");
+
+  const [newCollectionOpen, setNewCollectionOpen] = React.useState(false);
+  const [newDocumentOpen, setNewDocumentOpen] = React.useState(false);
+
+  const [newDbName, setNewDbName] = React.useState("");
+  const [newCollectionName, setNewCollectionName] = React.useState("");
+  const [newDocument, setNewDocument] = React.useState("");
+
+  const handleCloseNewCollection = () => {
+    setNewCollectionOpen(false);
+  };
+  const handleCloseNewDocument = () => {
+    setNewDocumentOpen(false);
+  };
 
   const {
     isLoading,
@@ -134,14 +157,60 @@ export default function MongoDBs({ projectName }) {
     data: dbList,
     error,
   } = useQuery(`${projectName}/mongodb`, () =>
-    client(`${projectName}/mongodb`, {_: true}).then(
+    client(`${projectName}/mongodb`, { _: true }).then(
       (response) => response.databases
     )
   );
 
+  const { isLoading: isCollectionMutationLoading, mutate: addCollection } =
+    useMutation(
+      ({ newDbName, newCollectionName }) =>
+        client(`${projectName}/mongodb/${newDbName}`, {
+          data: {
+            collection_name: newCollectionName,
+          },
+          _: true,
+        }),
+      {
+        onSuccess: () => {
+          queryClient.invalidateQueries(`${projectName}/mongodb/${newDbName}`);
+        },
+      }
+    );
+  const { isLoading: isDocumentMutationLoading, mutate: addDocument } =
+    useMutation(
+      ({ newDbName, newCollectionName, newDocument }) =>
+        client(`${projectName}/mongodb/${newDbName}/${newCollectionName}`, {
+          data: {
+            document: JSON.parse(newDocument),
+          },
+          _: true,
+        }),
+      {
+        onSuccess: () => {
+          queryClient.invalidateQueries(
+            `${projectName}/mongodb/${newDbName}/${newCollectionName}`
+          );
+        },
+      }
+    );
+
   return (
     <Box>
-      <Typography variant="h3">MongoDB</Typography>
+      <Stack direction="row" justifyContent="space-between">
+        <Typography variant="h3">MongoDB</Typography>
+        <Stack direction="row" justifyContent="space-between" spacing={2}>
+          <Button
+            variant="contained"
+            onClick={() => setNewCollectionOpen(true)}
+          >
+            New Collection
+          </Button>
+          <Button variant="contained" onClick={() => setNewDocumentOpen(true)}>
+            New Document
+          </Button>
+        </Stack>
+      </Stack>
       <Stack direction="row" spacing={2}>
         <TableContainer>
           <Table aria-label="simple table">
@@ -172,7 +241,9 @@ export default function MongoDBs({ projectName }) {
                     hover={true}
                     onClick={() => {
                       setDbName(row);
+                      setNewDbName(row);
                       setCollectionName("");
+                      setNewCollectionName("");
                     }}
                   >
                     <TableCell component="th" scope="row">
@@ -188,7 +259,10 @@ export default function MongoDBs({ projectName }) {
         <MongoCollections
           projectName={projectName}
           dbName={dbName}
-          onRowClick={(selectedName) => setCollectionName(selectedName)}
+          onRowClick={(selectedName) => {
+            setCollectionName(selectedName);
+            setNewCollectionName(selectedName);
+          }}
         />
         <MongoDocuments
           projectName={projectName}
@@ -196,6 +270,96 @@ export default function MongoDBs({ projectName }) {
           collectionName={collectionName}
         />
       </Stack>
+
+      <Dialog open={newCollectionOpen} onClose={handleCloseNewCollection}>
+        <DialogTitle>Add New Collection</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            To add new collection, please enter your collection name here.
+          </DialogContentText>
+          <TextField
+            autoFocus
+            margin="dense"
+            label="DB Name"
+            type="text"
+            fullWidth
+            variant="standard"
+            onChange={(e) => setNewDbName(e.target.value)}
+            value={newDbName}
+          />
+          <TextField
+            autoFocus
+            margin="dense"
+            label="Collection Name"
+            type="text"
+            fullWidth
+            variant="standard"
+            onChange={(e) => setNewCollectionName(e.target.value)}
+            value={newCollectionName}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseNewCollection}>Cancel</Button>
+          <Button
+            onClick={() => {
+              addCollection({ newDbName, newCollectionName });
+              setNewCollectionOpen(false);
+            }}
+          >
+            OK
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={newDocumentOpen} onClose={handleCloseNewDocument}>
+        <DialogTitle>Add New Document</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            To add new document, please enter document in json format.
+          </DialogContentText>
+          <TextField
+            autoFocus
+            margin="dense"
+            label="DB Name"
+            type="text"
+            fullWidth
+            variant="standard"
+            onChange={(e) => setNewDbName(e.target.value)}
+            value={newDbName}
+          />
+          <TextField
+            autoFocus
+            margin="dense"
+            label="Collection Name"
+            type="text"
+            fullWidth
+            variant="standard"
+            onChange={(e) => setNewCollectionName(e.target.value)}
+            value={newCollectionName}
+          />
+          <TextField
+            autoFocus
+            margin="dense"
+            label="Document"
+            type="text"
+            fullWidth
+            variant="standard"
+            onChange={(e) => setNewDocument(e.target.value)}
+            value={newDocument}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseNewDocument}>Cancel</Button>
+          <Button
+            onClick={() => {
+              addDocument({ newDbName, newCollectionName, newDocument });
+              setNewDocumentOpen(false);
+            }}
+          >
+            OK
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }
