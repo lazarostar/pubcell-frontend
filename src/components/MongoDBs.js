@@ -23,7 +23,7 @@ function MongoCollections({ projectName, dbName, onRowClick }) {
     error,
   } = useQuery(`${projectName}/mongodb/${dbName}`, () =>
     dbName
-      ? client(`${projectName}/mongodb/${dbName}`, true).then(
+      ? client(`${projectName}/mongodb/${dbName}`, { _: true }).then(
           (response) => response.collections
         )
       : []
@@ -78,7 +78,7 @@ function MongoDocuments({ projectName, dbName, collectionName }) {
     error,
   } = useQuery(`${projectName}/mongodb/${dbName}/${collectionName}`, () =>
     dbName && collectionName
-      ? client(`${projectName}/mongodb/${dbName}/${collectionName}`, true).then(
+      ? client(`${projectName}/mongodb/${dbName}/${collectionName}`, {_: true}).then(
           (response) => response.result
         )
       : []
@@ -134,7 +134,7 @@ export default function MongoDBs({ projectName }) {
     data: dbList,
     error,
   } = useQuery(`${projectName}/mongodb`, () =>
-    client(`${projectName}/mongodb`, true).then(
+    client(`${projectName}/mongodb`, {_: true}).then(
       (response) => response.databases
     )
   );
