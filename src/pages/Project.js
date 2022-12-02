@@ -1,6 +1,6 @@
 import React from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { Container, Typography, Box, Tabs, Tab } from "@mui/material";
+import { useParams } from "react-router-dom";
+import { Container, Typography } from "@mui/material";
 import Functions from "../components/Functions";
 
 function Project() {
