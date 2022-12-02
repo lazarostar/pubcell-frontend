@@ -8,7 +8,7 @@ function Project() {
 
   return (
     <Container>
-      <Typography variant="h2">Project: {projectName}</Typography>
+      <Typography variant="h2" align="center">Project: {projectName}</Typography>
       <Functions projectName={projectName} />
     </Container>
   );

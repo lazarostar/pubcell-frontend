@@ -8,32 +8,22 @@ import {
   TableCell,
   TableBody,
   Typography,
+  CircularProgress,
 } from "@mui/material";
 
-const projectInfo = {
-  _id: "6389dc1db3b7ec848c648b5d",
-  project_name: "first-app",
-  functions: [
-    {
-      name: "add",
-      parameters: [
-        { name: "a", default: null },
-        { name: "b", default: null },
-      ],
-      body: "return (a + b)",
-    },
-    {
-      name: "subtract",
-      parameters: [
-        { name: "a", default: null },
-        { name: "b", default: null },
-      ],
-      body: "return (a - b)",
-    },
-  ],
-};
+import { useQuery } from "react-query";
+import { client } from "../utils";
 
 export default function Functions({ projectName }) {
+  const {
+    isLoading,
+    isError,
+    data: projectInfo,
+    error,
+  } = useQuery(`project/${projectName}`, () =>
+    client(`project/${projectName}`)
+  );
+
   return (
     <Box>
       <Typography variant="h3">Functions</Typography>
@@ -48,22 +38,36 @@ export default function Functions({ projectName }) {
             </TableRow>
           </TableHead>
           <TableBody>
-            {projectInfo.functions.map((row, i) => (
-              <TableRow
-                key={row.name}
-                sx={{ "&:last-child td, &:last-child th": { border: 0 } }}
-                hover={true}
-              >
-                <TableCell component="th" scope="row">
-                  {i + 1}
+            {isLoading ? (
+              <TableRow>
+                <TableCell colSpan={3} align="center">
+                  <CircularProgress />
                 </TableCell>
-                <TableCell>{row.name}</TableCell>
-                <TableCell>
-                  {row.parameters.map((param) => param.name).join(", ")}
-                </TableCell>
-                <TableCell>{row.body}</TableCell>
               </TableRow>
-            ))}
+            ) : isError ? (
+              <TableRow>
+                <TableCell colSpan={3}>
+                  Error occured: {error.message}
+                </TableCell>
+              </TableRow>
+            ) : (
+              projectInfo.functions.map((row, i) => (
+                <TableRow
+                  key={row.name}
+                  sx={{ "&:last-child td, &:last-child th": { border: 0 } }}
+                  hover={true}
+                >
+                  <TableCell component="th" scope="row">
+                    {i + 1}
+                  </TableCell>
+                  <TableCell>{row.name}</TableCell>
+                  <TableCell>
+                    {row.parameters.map((param) => param.name).join(", ")}
+                  </TableCell>
+                  <TableCell>{row.body}</TableCell>
+                </TableRow>
+              ))
+            )}
           </TableBody>
         </Table>
       </TableContainer>
